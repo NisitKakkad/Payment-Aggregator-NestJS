@@ -12,10 +12,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Merchant,
-      MerchantRefreshToken,
-    ]),
+    TypeOrmModule.forFeature([Merchant, MerchantRefreshToken]),
 
     JwtModule.registerAsync({
       imports: [ConfigModule],

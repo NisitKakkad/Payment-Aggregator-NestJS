@@ -25,9 +25,7 @@ interface MerchantPayload {
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class OrdersController {
-  constructor(
-    private readonly ordersService: OrdersService,
-  ) {}
+  constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
   create(
@@ -37,28 +35,24 @@ export class OrdersController {
     return this.ordersService.create(merchant.sub, dto);
   }
   @Get(':id')
-findOne(
-  @CurrentMerchant() merchant: MerchantPayload,
-  @Param('id') orderId: string,
-) {
-  return this.ordersService.findOne(merchant.sub, orderId);
-}
-@Get()
-findAll(
-  @CurrentMerchant() merchant: MerchantPayload,
-  @Query() query: PaginationQueryDto,
-) {
-  return this.ordersService.findAll(
-    merchant.sub,
-    query.page,
-    query.limit,
-  );
-}
-@Patch(':id/cancel')
-cancel(
-  @CurrentMerchant() merchant: MerchantPayload,
-  @Param('id') orderId: string,
-) {
-  return this.ordersService.cancel(merchant.sub, orderId);
-}
+  findOne(
+    @CurrentMerchant() merchant: MerchantPayload,
+    @Param('id') orderId: string,
+  ) {
+    return this.ordersService.findOne(merchant.sub, orderId);
+  }
+  @Get()
+  findAll(
+    @CurrentMerchant() merchant: MerchantPayload,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.ordersService.findAll(merchant.sub, query.page, query.limit);
+  }
+  @Patch(':id/cancel')
+  cancel(
+    @CurrentMerchant() merchant: MerchantPayload,
+    @Param('id') orderId: string,
+  ) {
+    return this.ordersService.cancel(merchant.sub, orderId);
+  }
 }

@@ -26,46 +26,35 @@ interface MerchantPayload {
 @Controller('payments')
 @UseGuards(JwtAuthGuard)
 export class PaymentsController {
-  constructor(
-    private readonly paymentsService: PaymentsService,
-  ) {}
+  constructor(private readonly paymentsService: PaymentsService) {}
 
- @Post()
-create(
-  @CurrentMerchant() merchant: MerchantPayload,
-  @Body() dto: CreatePaymentDto,
-  @Headers('idempotency-key') idempotencyKey: string,
-) {
+  @Post()
+  create(
+    @CurrentMerchant() merchant: MerchantPayload,
+    @Body() dto: CreatePaymentDto,
+    @Headers('idempotency-key') idempotencyKey: string,
+  ) {
     if (!idempotencyKey) {
-        throw new BadRequestException(
-        'Idempotency-Key header is required',
-  );
-}
-  return this.paymentsService.create(
-    merchant.sub,
-    dto,
-    idempotencyKey,
-  );
-}
+      throw new BadRequestException('Idempotency-Key header is required');
+    }
+    return this.paymentsService.create(merchant.sub, dto, idempotencyKey);
+  }
   @Get(':id')
-findOne(
-  @CurrentMerchant() merchant: MerchantPayload,
-  @Param('id') paymentId: string,
-) {
-  return this.paymentsService.findOne(
-    merchant.sub,
-    paymentId,
-  );
-}
-@Get()
-findAll(
-  @CurrentMerchant() merchant: MerchantPayload,
-  @Query() paginationDto: PaginationQueryDto,
-) {
-  return this.paymentsService.findAll(
-    merchant.sub,
-    paginationDto.page,
-    paginationDto.limit,
-  );
-}
+  findOne(
+    @CurrentMerchant() merchant: MerchantPayload,
+    @Param('id') paymentId: string,
+  ) {
+    return this.paymentsService.findOne(merchant.sub, paymentId);
+  }
+  @Get()
+  findAll(
+    @CurrentMerchant() merchant: MerchantPayload,
+    @Query() paginationDto: PaginationQueryDto,
+  ) {
+    return this.paymentsService.findAll(
+      merchant.sub,
+      paginationDto.page,
+      paginationDto.limit,
+    );
+  }
 }

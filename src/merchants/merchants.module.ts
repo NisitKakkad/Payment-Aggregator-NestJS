@@ -1,4 +1,3 @@
-
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -8,10 +7,7 @@ import { MerchantsService } from './merchant.service.js';
 import { AuthModule } from '../auth/auth.module.js';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Merchant]),
-    AuthModule
-  ],
+  imports: [TypeOrmModule.forFeature([Merchant]), AuthModule],
   providers: [MerchantsService],
   controllers: [MerchantsController],
   exports: [MerchantsService],

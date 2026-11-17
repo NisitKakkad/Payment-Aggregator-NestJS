@@ -44,19 +44,19 @@ export class Payment {
   status: PaymentStatus;
 
   @Column({
-  type: 'varchar',
-  length: 100,
-  nullable: true,
-  unique: true,
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    unique: true,
   })
   providerReference: string | null;
   @Column({
-  type: 'varchar',
-  length: 100,
-  nullable: true,
-  unique: true,
-})
-idempotencyKey: string;
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    unique: true,
+  })
+  idempotencyKey: string;
 
   @CreateDateColumn()
   createdAt: Date;

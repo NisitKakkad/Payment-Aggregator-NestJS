@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   ConflictException,
@@ -48,75 +47,71 @@ export class OrdersService {
         'code' in error &&
         error.code === '23505'
       ) {
-        throw new ConflictException(
-          'Receipt already exists for this merchant',
-        );
+        throw new ConflictException('Receipt already exists for this merchant');
       }
 
       throw error;
     }
   }
   async findOne(merchantId: string, orderId: string) {
-  const order = await this.orderRepository.findOne({
-    where: {
-      id: orderId,
-      merchantId,
-    },
-  });
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+        merchantId,
+      },
+    });
 
-  if (!order) {
-    throw new NotFoundException('Order not found');
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    return order;
+  }
+  async findAll(merchantId: string, page: number, limit: number) {
+    const [orders, total] = await this.orderRepository.findAndCount({
+      where: { merchantId },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data: orders,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  return order;
-}
-async findAll(merchantId: string, page: number, limit: number) {
-  const [orders, total] = await this.orderRepository.findAndCount({
-    where: { merchantId },
-    order: { createdAt: 'DESC' },
-    skip: (page - 1) * limit,
-    take: limit,
-  });
+  async cancel(merchantId: string, orderId: string) {
+    const order = await this.orderRepository.findOne({
+      where: {
+        id: orderId,
+        merchantId,
+      },
+    });
 
-  return {
-    data: orders,
-    pagination: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
-}
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
 
-async cancel(merchantId: string, orderId: string) {
-  const order = await this.orderRepository.findOne({
-    where: {
-      id: orderId,
-      merchantId,
-    },
-  });
+    if (order.status !== OrderStatus.CREATED) {
+      throw new ConflictException('Only newly created orders can be cancelled');
+    }
 
-  if (!order) {
-    throw new NotFoundException('Order not found');
+    order.status = OrderStatus.CANCELLED;
+
+    await this.orderRepository.save(order);
+
+    return {
+      message: 'Order cancelled successfully',
+      order: {
+        id: order.id,
+        status: order.status,
+      },
+    };
   }
-
-  if (order.status !== OrderStatus.CREATED) {
-    throw new ConflictException(
-      'Only newly created orders can be cancelled',
-    );
-  }
-
-  order.status = OrderStatus.CANCELLED;
-
-  await this.orderRepository.save(order);
-
-  return {
-    message: 'Order cancelled successfully',
-    order: {
-      id: order.id,
-      status: order.status,
-    },
-  };
-}
 }

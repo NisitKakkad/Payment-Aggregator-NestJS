@@ -1,4 +1,3 @@
-
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -33,6 +32,19 @@ export class Merchant {
     default: MerchantStatus.PENDING,
   })
   status: MerchantStatus;
+  @Column({
+  type: 'varchar',
+  length: 500,
+  nullable: true,
+})
+webhookUrl: string | null;
+@Column({
+  type: 'varchar',
+  length: 128,
+  nullable: true,
+  select: false,
+})
+webhookSecret: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

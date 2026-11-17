@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   ConflictException,
@@ -11,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 
 import { Merchant } from './entities/merchant.entity.js';
 import { CreateMerchantDto } from './dto/create-merchant.dto.js';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class MerchantsService {
@@ -50,19 +50,40 @@ export class MerchantsService {
         },
       };
     } catch (error: unknown) {
-        if (
-            typeof error === 'object' &&
-            error !== null &&
-            'code' in error &&
-            error.code === '23505'
-  ) {
-    throw new ConflictException('Email already registered');
-  }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === '23505'
+      ) {
+        throw new ConflictException('Email already registered');
+      }
 
-  throw error;
-}
+      throw error;
+    }
   }
   async getProfile(merchantId: string) {
+    const merchant = await this.merchantRepository.findOne({
+      where: { id: merchantId },
+    });
+
+    if (!merchant) {
+      throw new NotFoundException('Merchant not found');
+    }
+
+    return {
+      id: merchant.id,
+      businessName: merchant.businessName,
+      email: merchant.email,
+      status: merchant.status,
+      createdAt: merchant.createdAt,
+      updatedAt: merchant.updatedAt,
+    };
+  }
+  async updateWebhookUrl(
+  merchantId: string,
+  webhookUrl: string,
+) {
   const merchant = await this.merchantRepository.findOne({
     where: { id: merchantId },
   });
@@ -71,13 +92,38 @@ export class MerchantsService {
     throw new NotFoundException('Merchant not found');
   }
 
+  merchant.webhookUrl = webhookUrl;
+
+  const webhookSecret = randomBytes(32).toString('hex');
+  merchant.webhookSecret = webhookSecret;
+
+  await this.merchantRepository.save(merchant);
+
   return {
-    id: merchant.id,
-    businessName: merchant.businessName,
-    email: merchant.email,
-    status: merchant.status,
-    createdAt: merchant.createdAt,
-    updatedAt: merchant.updatedAt,
+    message: 'Webhook URL updated successfully',
+    webhookUrl: merchant.webhookUrl,
+    webhookSecret,
+  };
+}
+async getWebhookConfig(merchantId: string) {
+  const merchant = await this.merchantRepository.findOne({
+    where: { id: merchantId },
+    select: {
+      id: true,
+      webhookUrl: true,
+      webhookSecret: true,
+    },
+  });
+
+  if (!merchant || !merchant.webhookUrl || !merchant.webhookSecret) {
+    throw new NotFoundException(
+      'Merchant webhook configuration not found',
+    );
+  }
+
+  return {
+    webhookUrl: merchant.webhookUrl,
+    webhookSecret: merchant.webhookSecret,
   };
 }
 }

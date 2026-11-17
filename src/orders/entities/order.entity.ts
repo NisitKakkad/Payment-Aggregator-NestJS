@@ -1,4 +1,3 @@
-
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -16,7 +15,7 @@ export enum OrderStatus {
   CREATED = 'CREATED',
   ATTEMPTED = 'ATTEMPTED',
   PAID = 'PAID',
-  CANCELLED = 'CANCELLED'
+  CANCELLED = 'CANCELLED',
 }
 
 @Entity('orders')

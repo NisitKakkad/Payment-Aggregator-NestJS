@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   CanActivate,
@@ -28,9 +27,7 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context
-      .switchToHttp()
-      .getRequest<AuthenticatedRequest>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
     const authorization = request.headers.authorization;
 
@@ -41,12 +38,12 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     try {
-      const payload =
-        await this.jwtService.verifyAsync<AccessTokenPayload>(token, {
-          secret: this.configService.getOrThrow<string>(
-            'JWT_ACCESS_SECRET',
-          ),
-        });
+      const payload = await this.jwtService.verifyAsync<AccessTokenPayload>(
+        token,
+        {
+          secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        },
+      );
 
       if (
         payload.type !== 'merchant' ||

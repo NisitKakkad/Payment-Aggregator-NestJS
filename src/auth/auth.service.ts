@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, IsNull } from 'typeorm';
@@ -49,10 +46,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  private async storeRefreshToken(
-    merchantId: string,
-    refreshToken: string,
-  ) {
+  private async storeRefreshToken(merchantId: string, refreshToken: string) {
     const tokenHash = await bcrypt.hash(refreshToken, 12);
 
     const expiresAt = new Date();
@@ -85,10 +79,7 @@ export class AuthService {
 
     const tokens = await this.generateTokens(merchant);
 
-    await this.storeRefreshToken(
-      merchant.id,
-      tokens.refreshToken,
-    );
+    await this.storeRefreshToken(merchant.id, tokens.refreshToken);
 
     return {
       message: 'Login successful',
@@ -141,7 +132,7 @@ export class AuthService {
       for (const record of records) {
         if (
           record.expiresAt > new Date() &&
-          await bcrypt.compare(refreshToken, record.tokenHash)
+          (await bcrypt.compare(refreshToken, record.tokenHash))
         ) {
           matchedToken = record;
           break;

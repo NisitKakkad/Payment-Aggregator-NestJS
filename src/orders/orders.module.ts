@@ -6,8 +6,8 @@ import { AuthModule } from '../auth/auth.module.js';
 import { Order } from './entities/order.entity.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Order]), AuthModule,],
+  imports: [TypeOrmModule.forFeature([Order]), AuthModule],
   providers: [OrdersService],
-  controllers: [OrdersController]
+  controllers: [OrdersController],
 })
 export class OrdersModule {}
