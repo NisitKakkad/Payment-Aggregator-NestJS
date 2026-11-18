@@ -1,3 +1,4 @@
+
 import {
   Injectable,
   NotFoundException,
@@ -5,15 +6,32 @@ import {
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
 
-import { Payment, PaymentStatus } from './entities/payment.entity.js';
+import {
+  DataSource,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 
-import { Order, OrderStatus } from '../orders/entities/order.entity.js';
+import {
+  Payment,
+  PaymentStatus,
+} from './entities/payment.entity.js';
+
+import {
+  Order,
+  OrderStatus,
+} from '../orders/entities/order.entity.js';
 
 import { CreatePaymentDto } from './dto/create-payment.dto.js';
+
 import { SimulatedProviderService } from './providers/simulated-provider.service.js';
+
 import { OutboxService } from '../outbox/outbox.service.js';
+
+import { LedgerService } from '../ledger/ledger.service.js';
+
+import { LedgerEntryType } from '../ledger/entities/ledger-entry.entity.js';
 
 @Injectable()
 export class PaymentsService {
@@ -29,6 +47,8 @@ export class PaymentsService {
     private readonly dataSource: DataSource,
 
     private readonly outboxService: OutboxService,
+
+    private readonly ledgerService: LedgerService,
   ) {}
 
   async create(
@@ -75,7 +95,16 @@ export class PaymentsService {
       order.status === OrderStatus.PAID ||
       order.status === OrderStatus.CANCELLED
     ) {
-      throw new ConflictException('Payment cannot be initiated for this order');
+      throw new ConflictException(
+        'Payment cannot be initiated for this order',
+      );
+    }
+
+    // Ledger system accounts currently support INR only.
+    if (order.currency !== 'INR') {
+      throw new ConflictException(
+        'Payments in this currency are not currently supported',
+      );
     }
 
     // Create payment attempt.
@@ -132,7 +161,8 @@ export class PaymentsService {
         ? PaymentStatus.SUCCESS
         : PaymentStatus.FAILED;
 
-    // Atomically persist payment result, order update and outbox event.
+    // Atomically persist payment result, order update,
+    // ledger journal and outbox event.
     const finalizedPayment = await this.dataSource.transaction(
       async (manager) => {
         const paymentRepo = manager.getRepository(Payment);
@@ -147,13 +177,15 @@ export class PaymentsService {
           throw new NotFoundException('Payment not found');
         }
 
-        paymentToUpdate.providerReference = providerResult.providerReference;
+        paymentToUpdate.providerReference =
+          providerResult.providerReference;
 
         paymentToUpdate.status = paymentStatus;
 
-        const updatedPayment = await paymentRepo.save(paymentToUpdate);
+        const updatedPayment =
+          await paymentRepo.save(paymentToUpdate);
 
-        // Update order only after successful payment.
+        // Update order and post ledger entries only after success.
         if (updatedPayment.status === PaymentStatus.SUCCESS) {
           const orderToUpdate = await orderRepo.findOne({
             where: {
@@ -170,6 +202,43 @@ export class PaymentsService {
           orderToUpdate.status = OrderStatus.PAID;
 
           await orderRepo.save(orderToUpdate);
+
+          // Retrieve system ledger accounts using this transaction.
+          const paymentClearing =
+            await this.ledgerService.getSystemAccountByCode(
+              'PAYMENT_CLEARING',
+              manager,
+            );
+
+          const merchantPayable =
+            await this.ledgerService.getSystemAccountByCode(
+              'MERCHANT_PAYABLE',
+              manager,
+            );
+
+          // Record double-entry accounting for successful payment.
+          await this.ledgerService.postJournal(
+            {
+              merchantId,
+              referenceType: 'PAYMENT',
+              referenceId: updatedPayment.id,
+              currency: updatedPayment.currency,
+              description: `Successful payment ${updatedPayment.id}`,
+              entries: [
+                {
+                  accountId: paymentClearing.id,
+                  type: LedgerEntryType.DEBIT,
+                  amount: updatedPayment.amount,
+                },
+                {
+                  accountId: merchantPayable.id,
+                  type: LedgerEntryType.CREDIT,
+                  amount: updatedPayment.amount,
+                },
+              ],
+            },
+            manager,
+          );
         }
 
         const event =
@@ -189,6 +258,7 @@ export class PaymentsService {
           },
         };
 
+        // Persist outbox event in the same transaction.
         await this.outboxService.createEvent(manager, {
           event,
           aggregateType: 'PAYMENT',
@@ -242,22 +312,27 @@ export class PaymentsService {
     };
   }
 
-  async findAll(merchantId: string, page: number, limit: number) {
-    const [payments, total] = await this.paymentRepository.findAndCount({
-      where: {
-        order: {
-          merchantId,
+  async findAll(
+    merchantId: string,
+    page: number,
+    limit: number,
+  ) {
+    const [payments, total] =
+      await this.paymentRepository.findAndCount({
+        where: {
+          order: {
+            merchantId,
+          },
         },
-      },
-      relations: {
-        order: true,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+        relations: {
+          order: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
 
     return {
       data: payments.map((payment) => ({

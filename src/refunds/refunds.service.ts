@@ -1,3 +1,4 @@
+
 import {
   Injectable,
   NotFoundException,
@@ -6,16 +7,35 @@ import {
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
 
-import { Refund, RefundStatus } from './entities/refund.entity.js';
-import { Payment, PaymentStatus } from '../payments/entities/payment.entity.js';
+import {
+  DataSource,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
+
+import {
+  Refund,
+  RefundStatus,
+} from './entities/refund.entity.js';
+
+import {
+  Payment,
+  PaymentStatus,
+} from '../payments/entities/payment.entity.js';
+
 import { CreateRefundDto } from './dto/create-refund.dto.js';
+
 import {
   SimulatedRefundProviderService,
   ProviderRefundStatus,
 } from './providers/simulated-refund-provider.service.js';
+
 import { OutboxService } from '../outbox/outbox.service.js';
+
+import { LedgerService } from '../ledger/ledger.service.js';
+
+import { LedgerEntryType } from '../ledger/entities/ledger-entry.entity.js';
 
 @Injectable()
 export class RefundsService {
@@ -28,6 +48,8 @@ export class RefundsService {
     private readonly refundProvider: SimulatedRefundProviderService,
 
     private readonly outboxService: OutboxService,
+
+    private readonly ledgerService: LedgerService,
   ) {}
 
   async create(
@@ -36,7 +58,9 @@ export class RefundsService {
     idempotencyKey: string,
   ) {
     if (!idempotencyKey) {
-      throw new BadRequestException('Idempotency-Key header is required');
+      throw new BadRequestException(
+        'Idempotency-Key header is required',
+      );
     }
 
     const existingRefund = await this.refundRepository.findOne({
@@ -71,7 +95,9 @@ export class RefundsService {
           .where('payment.id = :paymentId', {
             paymentId: dto.paymentId,
           })
-          .andWhere('order.merchantId = :merchantId', { merchantId })
+          .andWhere('order.merchantId = :merchantId', {
+            merchantId,
+          })
           .setLock('pessimistic_write')
           .getOne();
 
@@ -98,7 +124,9 @@ export class RefundsService {
           0n,
         );
 
-        const availableAmount = BigInt(payment.amount) - alreadyRefunded;
+        const availableAmount =
+          BigInt(payment.amount) - alreadyRefunded;
+
         const refundAmount = BigInt(dto.amount);
 
         if (refundAmount > availableAmount) {
@@ -156,7 +184,8 @@ export class RefundsService {
       throw error;
     }
 
-    refund.providerRefundReference = result.providerRefundReference;
+    refund.providerRefundReference =
+      result.providerRefundReference;
 
     refund.status =
       result.status === ProviderRefundStatus.SUCCESS
@@ -165,6 +194,7 @@ export class RefundsService {
 
     return this.persistRefundResult(refund, merchantId);
   }
+
   async findOne(merchantId: string, refundId: string) {
     const refund = await this.refundRepository.findOne({
       where: {
@@ -198,36 +228,41 @@ export class RefundsService {
     };
   }
 
-  async findAll(merchantId: string, page: number, limit: number) {
-    const [refunds, total] = await this.refundRepository.findAndCount({
-      where: {
-        payment: {
-          order: {
-            merchantId,
+  async findAll(
+    merchantId: string,
+    page: number,
+    limit: number,
+  ) {
+    const [refunds, total] =
+      await this.refundRepository.findAndCount({
+        where: {
+          payment: {
+            order: {
+              merchantId,
+            },
           },
         },
-      },
-      relations: {
-        payment: {
-          order: true,
+        relations: {
+          payment: {
+            order: true,
+          },
         },
-      },
-      select: {
-        id: true,
-        paymentId: true,
-        amount: true,
-        currency: true,
-        status: true,
-        providerRefundReference: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+        select: {
+          id: true,
+          paymentId: true,
+          amount: true,
+          currency: true,
+          status: true,
+          providerRefundReference: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
 
     return {
       data: refunds,
@@ -239,11 +274,53 @@ export class RefundsService {
       },
     };
   }
-  private async persistRefundResult(refund: Refund, merchantId: string) {
+
+  private async persistRefundResult(
+    refund: Refund,
+    merchantId: string,
+  ) {
     return this.dataSource.transaction(async (manager) => {
       const refundRepository = manager.getRepository(Refund);
 
       const savedRefund = await refundRepository.save(refund);
+
+      // Create ledger entries only for successful refunds.
+      if (savedRefund.status === RefundStatus.SUCCESS) {
+        const merchantPayable =
+          await this.ledgerService.getSystemAccountByCode(
+            'MERCHANT_PAYABLE',
+            manager,
+          );
+
+        const refundClearing =
+          await this.ledgerService.getSystemAccountByCode(
+            'REFUND_CLEARING',
+            manager,
+          );
+
+        await this.ledgerService.postJournal(
+          {
+            merchantId,
+            referenceType: 'REFUND',
+            referenceId: savedRefund.id,
+            currency: savedRefund.currency,
+            description: `Successful refund ${savedRefund.id}`,
+            entries: [
+              {
+                accountId: merchantPayable.id,
+                type: LedgerEntryType.DEBIT,
+                amount: savedRefund.amount,
+              },
+              {
+                accountId: refundClearing.id,
+                type: LedgerEntryType.CREDIT,
+                amount: savedRefund.amount,
+              },
+            ],
+          },
+          manager,
+        );
+      }
 
       const event =
         savedRefund.status === RefundStatus.SUCCESS
@@ -261,7 +338,8 @@ export class RefundsService {
           amount: savedRefund.amount,
           currency: savedRefund.currency,
           status: savedRefund.status,
-          providerRefundReference: savedRefund.providerRefundReference,
+          providerRefundReference:
+            savedRefund.providerRefundReference,
         },
       });
 
