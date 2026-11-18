@@ -125,9 +125,14 @@ export class OutboxProcessorService {
           const paymentId =
             event.aggregateType === 'PAYMENT'
               ? event.aggregateId
-              : event.payload.paymentId;
+              : event.aggregateType === 'REFUND'
+                ? event.payload.paymentId
+                : null;
 
-          if (!paymentId) {
+          if (
+            event.aggregateType !== 'SETTLEMENT' &&
+            !paymentId
+          ) {
             throw new Error('Payment ID missing from outbox event');
           }
 

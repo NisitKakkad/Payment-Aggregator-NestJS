@@ -23,8 +23,8 @@ export class Webhook {
   @Column({ type: 'uuid' })
   merchantId: string;
 
-  @Column({ type: 'uuid' })
-  paymentId: string;
+  @Column({ type: 'uuid', nullable: true })
+  paymentId: string | null;
 
   @Column({ type: 'varchar', length: 100 })
   event: string;

@@ -14,6 +14,8 @@ import { AuthModule } from './auth/auth.module.js';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { OutboxModule } from './outbox/outbox.module.js';
+import { SettlementsModule } from './settlements/settlements.module.js';
+import { ReconciliationModule } from './reconciliation/reconciliation.module.js';
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
@@ -56,6 +58,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     LedgerModule,
     AuthModule,
     OutboxModule,
+    SettlementsModule,
+    ReconciliationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
