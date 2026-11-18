@@ -3,10 +3,7 @@ import { createHmac } from 'node:crypto';
 
 @Injectable()
 export class WebhookSignatureService {
-  generateSignature(
-    payload: string,
-    secret: string,
-  ): string {
+  generateSignature(payload: string, secret: string): string {
     const signature = createHmac('sha256', secret)
       .update(payload)
       .digest('hex');

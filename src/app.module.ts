@@ -12,6 +12,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module.js';
 import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
+import { OutboxModule } from './outbox/outbox.module.js';
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
@@ -40,11 +42,12 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       }),
     }),
     BullModule.forRoot({
-  connection: {
-    host: 'localhost',
-    port: 6379,
-  },
-}),
+      connection: {
+        host: 'localhost',
+        port: 6379,
+      },
+    }),
+    ScheduleModule.forRoot(),
     MerchantsModule,
     OrdersModule,
     PaymentsModule,
@@ -52,6 +55,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     RefundsModule,
     LedgerModule,
     AuthModule,
+    OutboxModule,
   ],
   controllers: [AppController],
   providers: [AppService],

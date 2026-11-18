@@ -26,14 +26,11 @@ export class MerchantsController {
     return this.merchantsService.getProfile(merchant.sub);
   }
   @UseGuards(JwtAuthGuard)
-@Patch('webhook')
-async updateWebhook(
-  @CurrentMerchant() merchant: MerchantPayload,
-  @Body() dto: UpdateWebhookDto,
-) {
-  return this.merchantsService.updateWebhookUrl(
-    merchant.sub,
-    dto.webhookUrl,
-  );
-}
+  @Patch('webhook')
+  async updateWebhook(
+    @CurrentMerchant() merchant: MerchantPayload,
+    @Body() dto: UpdateWebhookDto,
+  ) {
+    return this.merchantsService.updateWebhookUrl(merchant.sub, dto.webhookUrl);
+  }
 }

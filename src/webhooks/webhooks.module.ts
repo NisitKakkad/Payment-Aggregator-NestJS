@@ -10,9 +10,14 @@ import { WebhookProcessor } from './webhooks.processor.js';
 import { AuthModule } from '../auth/auth.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Webhook]), MerchantsModule, BullModule.registerQueue({
-  name: 'webhook-delivery',
-}),AuthModule],
+  imports: [
+    TypeOrmModule.forFeature([Webhook]),
+    MerchantsModule,
+    BullModule.registerQueue({
+      name: 'webhook-delivery',
+    }),
+    AuthModule,
+  ],
   providers: [WebhooksService, WebhookSignatureService, WebhookProcessor],
   controllers: [WebhooksController],
   exports: [WebhooksService, WebhookSignatureService],

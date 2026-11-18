@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 
 import { WebhooksService } from './webhooks.service.js';
 
@@ -19,9 +13,7 @@ interface MerchantPayload {
 
 @Controller('webhooks')
 export class WebhooksController {
-  constructor(
-    private readonly webhooksService: WebhooksService,
-  ) {}
+  constructor(private readonly webhooksService: WebhooksService) {}
 
   @UseGuards(JwtAuthGuard)
   @Get()
@@ -29,14 +21,11 @@ export class WebhooksController {
     return this.webhooksService.findAll(merchant.sub);
   }
   @UseGuards(JwtAuthGuard)
-@Post(':id/retry')
-retryWebhook(
-  @CurrentMerchant() merchant: MerchantPayload,
-  @Param('id') webhookId: string,
-) {
-  return this.webhooksService.retryWebhook(
-    merchant.sub,
-    webhookId,
-  );
-}
+  @Post(':id/retry')
+  retryWebhook(
+    @CurrentMerchant() merchant: MerchantPayload,
+    @Param('id') webhookId: string,
+  ) {
+    return this.webhooksService.retryWebhook(merchant.sub, webhookId);
+  }
 }

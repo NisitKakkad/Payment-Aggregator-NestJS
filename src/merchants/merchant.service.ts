@@ -80,50 +80,45 @@ export class MerchantsService {
       updatedAt: merchant.updatedAt,
     };
   }
-  async updateWebhookUrl(
-  merchantId: string,
-  webhookUrl: string,
-) {
-  const merchant = await this.merchantRepository.findOne({
-    where: { id: merchantId },
-  });
+  async updateWebhookUrl(merchantId: string, webhookUrl: string) {
+    const merchant = await this.merchantRepository.findOne({
+      where: { id: merchantId },
+    });
 
-  if (!merchant) {
-    throw new NotFoundException('Merchant not found');
+    if (!merchant) {
+      throw new NotFoundException('Merchant not found');
+    }
+
+    merchant.webhookUrl = webhookUrl;
+
+    const webhookSecret = randomBytes(32).toString('hex');
+    merchant.webhookSecret = webhookSecret;
+
+    await this.merchantRepository.save(merchant);
+
+    return {
+      message: 'Webhook URL updated successfully',
+      webhookUrl: merchant.webhookUrl,
+      webhookSecret,
+    };
   }
+  async getWebhookConfig(merchantId: string) {
+    const merchant = await this.merchantRepository.findOne({
+      where: { id: merchantId },
+      select: {
+        id: true,
+        webhookUrl: true,
+        webhookSecret: true,
+      },
+    });
 
-  merchant.webhookUrl = webhookUrl;
+    if (!merchant || !merchant.webhookUrl || !merchant.webhookSecret) {
+      throw new NotFoundException('Merchant webhook configuration not found');
+    }
 
-  const webhookSecret = randomBytes(32).toString('hex');
-  merchant.webhookSecret = webhookSecret;
-
-  await this.merchantRepository.save(merchant);
-
-  return {
-    message: 'Webhook URL updated successfully',
-    webhookUrl: merchant.webhookUrl,
-    webhookSecret,
-  };
-}
-async getWebhookConfig(merchantId: string) {
-  const merchant = await this.merchantRepository.findOne({
-    where: { id: merchantId },
-    select: {
-      id: true,
-      webhookUrl: true,
-      webhookSecret: true,
-    },
-  });
-
-  if (!merchant || !merchant.webhookUrl || !merchant.webhookSecret) {
-    throw new NotFoundException(
-      'Merchant webhook configuration not found',
-    );
+    return {
+      webhookUrl: merchant.webhookUrl,
+      webhookSecret: merchant.webhookSecret,
+    };
   }
-
-  return {
-    webhookUrl: merchant.webhookUrl,
-    webhookSecret: merchant.webhookSecret,
-  };
-}
 }

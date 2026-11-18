@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 
 import { Payment, PaymentStatus } from './entities/payment.entity.js';
 
@@ -13,9 +13,7 @@ import { Order, OrderStatus } from '../orders/entities/order.entity.js';
 
 import { CreatePaymentDto } from './dto/create-payment.dto.js';
 import { SimulatedProviderService } from './providers/simulated-provider.service.js';
-import { WebhooksService } from '../webhooks/webhooks.service.js';
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
+import { OutboxService } from '../outbox/outbox.service.js';
 
 @Injectable()
 export class PaymentsService {
@@ -25,10 +23,12 @@ export class PaymentsService {
 
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
+
     private readonly simulatedProvider: SimulatedProviderService,
-    private readonly webhooksService: WebhooksService,
-    @InjectQueue('webhook-delivery')
-private readonly webhookQueue: Queue,
+
+    private readonly dataSource: DataSource,
+
+    private readonly outboxService: OutboxService,
   ) {}
 
   async create(
@@ -106,6 +106,7 @@ private readonly webhookQueue: Queue,
               'Idempotency key already used for another order',
             );
           }
+
           return {
             message: 'Payment already exists for this idempotency key',
             payment: {
@@ -126,75 +127,93 @@ private readonly webhookQueue: Queue,
     // Process payment through simulated provider.
     const providerResult = await this.simulatedProvider.processPayment();
 
-    // Update payment record.
-    savedPayment.providerReference = providerResult.providerReference;
-
-    savedPayment.status =
+    const paymentStatus =
       providerResult.status === 'SUCCESS'
         ? PaymentStatus.SUCCESS
         : PaymentStatus.FAILED;
 
-    await this.paymentRepository.save(savedPayment);
+    // Atomically persist payment result, order update and outbox event.
+    const finalizedPayment = await this.dataSource.transaction(
+      async (manager) => {
+        const paymentRepo = manager.getRepository(Payment);
+        const orderRepo = manager.getRepository(Order);
 
-    // Update order only after successful payment.
-    if (savedPayment.status === PaymentStatus.SUCCESS) {
-      order.status = OrderStatus.PAID;
-      await this.orderRepository.save(order);
-    }
+        const paymentToUpdate = await paymentRepo.findOne({
+          where: { id: savedPayment.id },
+          lock: { mode: 'pessimistic_write' },
+        });
 
-    // Generate webhook event.
-    const event =
-      savedPayment.status === PaymentStatus.SUCCESS
-        ? 'payment.success'
-        : 'payment.failed';
+        if (!paymentToUpdate) {
+          throw new NotFoundException('Payment not found');
+        }
 
-    const payload = {
-      event,
-      payment: {
-        id: savedPayment.id,
-        orderId: savedPayment.orderId,
-        amount: savedPayment.amount,
-        currency: savedPayment.currency,
-        status: savedPayment.status,
-        providerReference: savedPayment.providerReference,
+        paymentToUpdate.providerReference = providerResult.providerReference;
+
+        paymentToUpdate.status = paymentStatus;
+
+        const updatedPayment = await paymentRepo.save(paymentToUpdate);
+
+        // Update order only after successful payment.
+        if (updatedPayment.status === PaymentStatus.SUCCESS) {
+          const orderToUpdate = await orderRepo.findOne({
+            where: {
+              id: updatedPayment.orderId,
+              merchantId,
+            },
+            lock: { mode: 'pessimistic_write' },
+          });
+
+          if (!orderToUpdate) {
+            throw new NotFoundException('Order not found');
+          }
+
+          orderToUpdate.status = OrderStatus.PAID;
+
+          await orderRepo.save(orderToUpdate);
+        }
+
+        const event =
+          updatedPayment.status === PaymentStatus.SUCCESS
+            ? 'payment.success'
+            : 'payment.failed';
+
+        const payload = {
+          event,
+          payment: {
+            id: updatedPayment.id,
+            orderId: updatedPayment.orderId,
+            amount: updatedPayment.amount,
+            currency: updatedPayment.currency,
+            status: updatedPayment.status,
+            providerReference: updatedPayment.providerReference,
+          },
+        };
+
+        await this.outboxService.createEvent(manager, {
+          event,
+          aggregateType: 'PAYMENT',
+          aggregateId: updatedPayment.id,
+          merchantId,
+          payload,
+        });
+
+        return updatedPayment;
       },
-    };
-
-    const webhook = await this.webhooksService.createEvent(
-  merchantId,
-  savedPayment.id,
-  event,
-  payload,
-);
-
-await this.webhookQueue.add(
-  'deliver-webhook',
-  {
-    webhookId: webhook.id,
-  },
-  {
-    attempts: 5,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
-    removeOnComplete: true,
-    removeOnFail: false,
-  },
-);
+    );
 
     return {
       message: 'Payment processed',
       payment: {
-        id: savedPayment.id,
-        orderId: savedPayment.orderId,
-        amount: savedPayment.amount,
-        currency: savedPayment.currency,
-        status: savedPayment.status,
-        providerReference: savedPayment.providerReference,
+        id: finalizedPayment.id,
+        orderId: finalizedPayment.orderId,
+        amount: finalizedPayment.amount,
+        currency: finalizedPayment.currency,
+        status: finalizedPayment.status,
+        providerReference: finalizedPayment.providerReference,
       },
     };
   }
+
   async findOne(merchantId: string, paymentId: string) {
     const payment = await this.paymentRepository.findOne({
       where: {
@@ -222,6 +241,7 @@ await this.webhookQueue.add(
       createdAt: payment.createdAt,
     };
   }
+
   async findAll(merchantId: string, page: number, limit: number) {
     const [payments, total] = await this.paymentRepository.findAndCount({
       where: {
