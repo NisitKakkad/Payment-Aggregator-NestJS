@@ -1,4 +1,3 @@
-
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -22,22 +21,14 @@ export enum LedgerAccountStatus {
 }
 
 @Entity('ledger_accounts')
-@Index(
-  'UQ_ledger_accounts_system_code',
-  ['code'],
-  {
-    unique: true,
-    where: '"merchantId" IS NULL',
-  },
-)
-@Index(
-  'UQ_ledger_accounts_merchant_code',
-  ['merchantId', 'code'],
-  {
-    unique: true,
-    where: '"merchantId" IS NOT NULL',
-  },
-)
+@Index('UQ_ledger_accounts_system_code', ['code'], {
+  unique: true,
+  where: '"merchantId" IS NULL',
+})
+@Index('UQ_ledger_accounts_merchant_code', ['merchantId', 'code'], {
+  unique: true,
+  where: '"merchantId" IS NOT NULL',
+})
 export class LedgerAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;

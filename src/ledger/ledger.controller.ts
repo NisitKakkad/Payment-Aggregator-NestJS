@@ -1,4 +1,3 @@
-
 import {
   Controller,
   Post,
@@ -26,9 +25,7 @@ import { LedgerJournalFilterDto } from './dto/ledger-journal-filter.dto.js';
 @Controller('ledger')
 @UseGuards(JwtAuthGuard)
 export class LedgerController {
-  constructor(
-    private readonly ledgerService: LedgerService,
-  ) {}
+  constructor(private readonly ledgerService: LedgerService) {}
 
   @Post('accounts')
   createAccount(
@@ -64,92 +61,80 @@ export class LedgerController {
     @CurrentMerchant() merchant: { sub: string },
     @Param('id', ParseUUIDPipe) accountId: string,
   ) {
-    return this.ledgerService.getAccountBalance(
-      accountId,
+    return this.ledgerService.getAccountBalance(accountId, merchant.sub);
+  }
+
+  @Get('accounts')
+  findAllAccounts(
+    @CurrentMerchant() merchant: { sub: string },
+    @Query() pagination: LedgerPaginationDto,
+  ) {
+    return this.ledgerService.findAllAccounts(
       merchant.sub,
+      pagination.page,
+      pagination.limit,
     );
   }
 
- @Get('accounts')
-findAllAccounts(
-  @CurrentMerchant() merchant: { sub: string },
-  @Query() pagination: LedgerPaginationDto,
-) {
-  return this.ledgerService.findAllAccounts(
-    merchant.sub,
-    pagination.page,
-    pagination.limit,
-  );
-}
-
   @Get('journals')
-findAllJournals(
-  @CurrentMerchant() merchant: { sub: string },
-  @Query() pagination: LedgerPaginationDto,
-  @Query() filters: LedgerJournalFilterDto,
-) {
-  return this.ledgerService.findAllJournals(
-    merchant.sub,
-    pagination.page,
-    pagination.limit,
-    filters,
-  );
-}
+  findAllJournals(
+    @CurrentMerchant() merchant: { sub: string },
+    @Query() pagination: LedgerPaginationDto,
+    @Query() filters: LedgerJournalFilterDto,
+  ) {
+    return this.ledgerService.findAllJournals(
+      merchant.sub,
+      pagination.page,
+      pagination.limit,
+      filters,
+    );
+  }
 
-@Post('journals/:id/reverse')
-reverseJournal(
-  @CurrentMerchant() merchant: { sub: string },
-  @Param('id', ParseUUIDPipe) journalId: string,
-) {
-  return this.ledgerService.reverseJournal(
-    journalId,
-    merchant.sub,
-  );
-}
-@Get('accounts/:id/statement')
-getAccountStatement(
-  @CurrentMerchant() merchant: { sub: string },
-  @Param('id', ParseUUIDPipe) accountId: string,
-  @Query('from') from?: string,
-  @Query('to') to?: string,
-) {
-  return this.ledgerService.getAccountStatement(
-    accountId,
-    merchant.sub,
-    from,
-    to,
-  );
-}
-@Get('journals/:id')
-getJournalById(
-  @CurrentMerchant() merchant: { sub: string },
-  @Param('id', ParseUUIDPipe) journalId: string,
-) {
-  return this.ledgerService.getJournalById(
-    journalId,
-    merchant.sub,
-  );
-}
-@Patch('accounts/:id/status')
-updateAccountStatus(
-  @CurrentMerchant() merchant: { sub: string },
-  @Param('id', ParseUUIDPipe) accountId: string,
-  @Body() dto: UpdateLedgerAccountStatusDto,
-) {
-  return this.ledgerService.updateAccountStatus(
-    accountId,
-    merchant.sub,
-    dto.status,
-  );
-}
-@Delete('accounts/:id')
-deactivateAccount(
-  @CurrentMerchant() merchant: { sub: string },
-  @Param('id', ParseUUIDPipe) accountId: string,
-) {
-  return this.ledgerService.deactivateAccount(
-    accountId,
-    merchant.sub,
-  );
-}
+  @Post('journals/:id/reverse')
+  reverseJournal(
+    @CurrentMerchant() merchant: { sub: string },
+    @Param('id', ParseUUIDPipe) journalId: string,
+  ) {
+    return this.ledgerService.reverseJournal(journalId, merchant.sub);
+  }
+  @Get('accounts/:id/statement')
+  getAccountStatement(
+    @CurrentMerchant() merchant: { sub: string },
+    @Param('id', ParseUUIDPipe) accountId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.ledgerService.getAccountStatement(
+      accountId,
+      merchant.sub,
+      from,
+      to,
+    );
+  }
+  @Get('journals/:id')
+  getJournalById(
+    @CurrentMerchant() merchant: { sub: string },
+    @Param('id', ParseUUIDPipe) journalId: string,
+  ) {
+    return this.ledgerService.getJournalById(journalId, merchant.sub);
+  }
+  @Patch('accounts/:id/status')
+  updateAccountStatus(
+    @CurrentMerchant() merchant: { sub: string },
+    @Param('id', ParseUUIDPipe) accountId: string,
+    @Body() dto: UpdateLedgerAccountStatusDto,
+  ) {
+    return this.ledgerService.updateAccountStatus(
+      accountId,
+      merchant.sub,
+      dto.status,
+    );
+  }
+  @Delete('accounts/:id')
+  deactivateAccount(
+    @CurrentMerchant() merchant: { sub: string },
+    @Param('id', ParseUUIDPipe) accountId: string,
+  ) {
+    return this.ledgerService.deactivateAccount(accountId, merchant.sub);
+  }
 }

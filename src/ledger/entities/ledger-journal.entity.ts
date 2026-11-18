@@ -1,4 +1,3 @@
-
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -33,14 +32,10 @@ export enum LedgerJournalStatus {
   },
 )
 @Index(['merchantId', 'createdAt'])
-@Index(
-  'UQ_ledger_journals_reversal_of',
-  ['reversalOfId'],
-  {
-    unique: true,
-    where: '"reversalOfId" IS NOT NULL',
-  },
-)
+@Index('UQ_ledger_journals_reversal_of', ['reversalOfId'], {
+  unique: true,
+  where: '"reversalOfId" IS NOT NULL',
+})
 export class LedgerJournal {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -76,10 +71,7 @@ export class LedgerJournal {
   @Column({ type: 'uuid', nullable: true })
   reversalOfId: string | null;
 
-  @OneToMany(
-    () => LedgerEntry,
-    (entry) => entry.journal,
-  )
+  @OneToMany(() => LedgerEntry, (entry) => entry.journal)
   entries: LedgerEntry[];
 
   @CreateDateColumn()

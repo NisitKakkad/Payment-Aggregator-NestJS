@@ -1,6 +1,11 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
-  UpdateDateColumn, Index, OneToMany,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  OneToMany,
 } from 'typeorm';
 import { SettlementItem } from './settlements-item.entity.js';
 
@@ -12,7 +17,11 @@ export enum SettlementStatus {
 }
 
 @Entity('settlements')
-@Index('UQ_settlements_merchant_idempotency', ['merchantId', 'idempotencyKey'], { unique: true })
+@Index(
+  'UQ_settlements_merchant_idempotency',
+  ['merchantId', 'idempotencyKey'],
+  { unique: true },
+)
 @Index(['merchantId', 'createdAt'])
 @Index(['merchantId', 'status'])
 export class Settlement {
@@ -28,7 +37,11 @@ export class Settlement {
   @Column({ type: 'varchar', length: 3, default: 'INR' })
   currency: string;
 
-  @Column({ type: 'enum', enum: SettlementStatus, default: SettlementStatus.PENDING })
+  @Column({
+    type: 'enum',
+    enum: SettlementStatus,
+    default: SettlementStatus.PENDING,
+  })
   status: SettlementStatus;
 
   @Column({ type: 'varchar', length: 150, nullable: true, unique: true })

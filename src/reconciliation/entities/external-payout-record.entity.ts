@@ -1,6 +1,11 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne,
-  JoinColumn, CreateDateColumn, Index,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  Index,
 } from 'typeorm';
 import type { ReconciliationRun } from './reconciliation-run.entity.js';
 
@@ -11,7 +16,11 @@ export enum ExternalPayoutRecordStatus {
 }
 
 @Entity('external_payout_records')
-@Index('UQ_external_payout_merchant_reference', ['merchantId', 'externalReference'], { unique: true })
+@Index(
+  'UQ_external_payout_merchant_reference',
+  ['merchantId', 'externalReference'],
+  { unique: true },
+)
 @Index(['runId'])
 export class ExternalPayoutRecord {
   @PrimaryGeneratedColumn('uuid')
@@ -20,7 +29,9 @@ export class ExternalPayoutRecord {
   @Column({ type: 'uuid' })
   runId: string;
 
-  @ManyToOne('ReconciliationRun', (run: ReconciliationRun) => run.records, { onDelete: 'RESTRICT' })
+  @ManyToOne('ReconciliationRun', (run: ReconciliationRun) => run.records, {
+    onDelete: 'RESTRICT',
+  })
   @JoinColumn({ name: 'runId' })
   run: ReconciliationRun;
 
@@ -42,7 +53,11 @@ export class ExternalPayoutRecord {
   @Column({ type: 'uuid', nullable: true })
   settlementId: string | null;
 
-  @Column({ type: 'enum', enum: ExternalPayoutRecordStatus, default: ExternalPayoutRecordStatus.UNMATCHED })
+  @Column({
+    type: 'enum',
+    enum: ExternalPayoutRecordStatus,
+    default: ExternalPayoutRecordStatus.UNMATCHED,
+  })
   status: ExternalPayoutRecordStatus;
 
   @CreateDateColumn()

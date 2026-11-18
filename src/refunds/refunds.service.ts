@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   NotFoundException,
@@ -8,21 +7,11 @@ import {
 
 import { InjectRepository } from '@nestjs/typeorm';
 
-import {
-  DataSource,
-  QueryFailedError,
-  Repository,
-} from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 
-import {
-  Refund,
-  RefundStatus,
-} from './entities/refund.entity.js';
+import { Refund, RefundStatus } from './entities/refund.entity.js';
 
-import {
-  Payment,
-  PaymentStatus,
-} from '../payments/entities/payment.entity.js';
+import { Payment, PaymentStatus } from '../payments/entities/payment.entity.js';
 
 import { CreateRefundDto } from './dto/create-refund.dto.js';
 
@@ -58,9 +47,7 @@ export class RefundsService {
     idempotencyKey: string,
   ) {
     if (!idempotencyKey) {
-      throw new BadRequestException(
-        'Idempotency-Key header is required',
-      );
+      throw new BadRequestException('Idempotency-Key header is required');
     }
 
     const existingRefund = await this.refundRepository.findOne({
@@ -124,8 +111,7 @@ export class RefundsService {
           0n,
         );
 
-        const availableAmount =
-          BigInt(payment.amount) - alreadyRefunded;
+        const availableAmount = BigInt(payment.amount) - alreadyRefunded;
 
         const refundAmount = BigInt(dto.amount);
 
@@ -184,8 +170,7 @@ export class RefundsService {
       throw error;
     }
 
-    refund.providerRefundReference =
-      result.providerRefundReference;
+    refund.providerRefundReference = result.providerRefundReference;
 
     refund.status =
       result.status === ProviderRefundStatus.SUCCESS
@@ -228,41 +213,36 @@ export class RefundsService {
     };
   }
 
-  async findAll(
-    merchantId: string,
-    page: number,
-    limit: number,
-  ) {
-    const [refunds, total] =
-      await this.refundRepository.findAndCount({
-        where: {
-          payment: {
-            order: {
-              merchantId,
-            },
+  async findAll(merchantId: string, page: number, limit: number) {
+    const [refunds, total] = await this.refundRepository.findAndCount({
+      where: {
+        payment: {
+          order: {
+            merchantId,
           },
         },
-        relations: {
-          payment: {
-            order: true,
-          },
+      },
+      relations: {
+        payment: {
+          order: true,
         },
-        select: {
-          id: true,
-          paymentId: true,
-          amount: true,
-          currency: true,
-          status: true,
-          providerRefundReference: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        order: {
-          createdAt: 'DESC',
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+      },
+      select: {
+        id: true,
+        paymentId: true,
+        amount: true,
+        currency: true,
+        status: true,
+        providerRefundReference: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
     return {
       data: refunds,
@@ -275,10 +255,7 @@ export class RefundsService {
     };
   }
 
-  private async persistRefundResult(
-    refund: Refund,
-    merchantId: string,
-  ) {
+  private async persistRefundResult(refund: Refund, merchantId: string) {
     return this.dataSource.transaction(async (manager) => {
       const refundRepository = manager.getRepository(Refund);
 
@@ -286,17 +263,15 @@ export class RefundsService {
 
       // Create ledger entries only for successful refunds.
       if (savedRefund.status === RefundStatus.SUCCESS) {
-        const merchantPayable =
-          await this.ledgerService.getSystemAccountByCode(
-            'MERCHANT_PAYABLE',
-            manager,
-          );
+        const merchantPayable = await this.ledgerService.getSystemAccountByCode(
+          'MERCHANT_PAYABLE',
+          manager,
+        );
 
-        const refundClearing =
-          await this.ledgerService.getSystemAccountByCode(
-            'REFUND_CLEARING',
-            manager,
-          );
+        const refundClearing = await this.ledgerService.getSystemAccountByCode(
+          'REFUND_CLEARING',
+          manager,
+        );
 
         await this.ledgerService.postJournal(
           {
@@ -338,8 +313,7 @@ export class RefundsService {
           amount: savedRefund.amount,
           currency: savedRefund.currency,
           status: savedRefund.status,
-          providerRefundReference:
-            savedRefund.providerRefundReference,
+          providerRefundReference: savedRefund.providerRefundReference,
         },
       });
 

@@ -1,4 +1,3 @@
-
 import {
   IsEnum,
   IsNotEmpty,
@@ -21,7 +20,8 @@ export class CreateLedgerAccountDto {
   @IsNotEmpty()
   @MaxLength(50)
   @Matches(/^[A-Z0-9_]+$/, {
-    message: 'Code must contain only uppercase letters, numbers and underscores',
+    message:
+      'Code must contain only uppercase letters, numbers and underscores',
   })
   code: string;
 

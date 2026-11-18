@@ -1,4 +1,3 @@
-
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -12,17 +11,11 @@ import { LedgerInitializerService } from './ledger-initializer.service.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      LedgerAccount,
-      LedgerEntry,
-      LedgerJournal,
-    ]),
-    AuthModule
+    TypeOrmModule.forFeature([LedgerAccount, LedgerEntry, LedgerJournal]),
+    AuthModule,
   ],
-  providers:[LedgerService,
-    LedgerInitializerService
-  ],
-  controllers:[LedgerController],
-  exports:[LedgerService]
+  providers: [LedgerService, LedgerInitializerService],
+  controllers: [LedgerController],
+  exports: [LedgerService],
 })
 export class LedgerModule {}

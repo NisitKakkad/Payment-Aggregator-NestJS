@@ -1,6 +1,11 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne,
-  JoinColumn, CreateDateColumn, Index,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  Index,
 } from 'typeorm';
 import type { ReconciliationRun } from './reconciliation-run.entity.js';
 
@@ -24,7 +29,11 @@ export class ReconciliationDiscrepancy {
   @Column({ type: 'uuid' })
   runId: string;
 
-  @ManyToOne('ReconciliationRun', (run: ReconciliationRun) => run.discrepancies, { onDelete: 'RESTRICT' })
+  @ManyToOne(
+    'ReconciliationRun',
+    (run: ReconciliationRun) => run.discrepancies,
+    { onDelete: 'RESTRICT' },
+  )
   @JoinColumn({ name: 'runId' })
   run: ReconciliationRun;
 
@@ -46,7 +55,11 @@ export class ReconciliationDiscrepancy {
   @Column({ type: 'bigint', nullable: true })
   actualAmount: string | null;
 
-  @Column({ type: 'enum', enum: ReconciliationDiscrepancyStatus, default: ReconciliationDiscrepancyStatus.OPEN })
+  @Column({
+    type: 'enum',
+    enum: ReconciliationDiscrepancyStatus,
+    default: ReconciliationDiscrepancyStatus.OPEN,
+  })
   status: ReconciliationDiscrepancyStatus;
 
   @CreateDateColumn()

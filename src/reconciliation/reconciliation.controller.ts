@@ -1,6 +1,13 @@
 import {
-  Controller, Post, Get, Body, Param, Query, Patch,
-  UseGuards, ParseUUIDPipe,
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  Patch,
+  UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ReconciliationService } from './reconciliation.service.js';
 import { ImportPayoutsDto } from './dto/import-payouts.dto.js';
@@ -26,7 +33,11 @@ export class ReconciliationController {
     @CurrentMerchant() merchant: { sub: string },
     @Query() pagination: ReconciliationPaginationDto,
   ) {
-    return this.reconciliationService.findAll(merchant.sub, pagination.page, pagination.limit);
+    return this.reconciliationService.findAll(
+      merchant.sub,
+      pagination.page,
+      pagination.limit,
+    );
   }
 
   @Get('runs/:id')
@@ -44,5 +55,4 @@ export class ReconciliationController {
   ) {
     return this.reconciliationService.resolveDiscrepancy(merchant.sub, id);
   }
-
 }

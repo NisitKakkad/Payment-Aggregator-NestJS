@@ -1,6 +1,11 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
-  UpdateDateColumn, OneToMany, Index,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+  Index,
 } from 'typeorm';
 import { ExternalPayoutRecord } from './external-payout-record.entity.js';
 import { ReconciliationDiscrepancy } from './reconciliation-discrepancy.entity.js';
@@ -19,7 +24,11 @@ export class ReconciliationRun {
   @Column({ type: 'uuid' })
   merchantId: string;
 
-  @Column({ type: 'enum', enum: ReconciliationRunStatus, default: ReconciliationRunStatus.COMPLETED })
+  @Column({
+    type: 'enum',
+    enum: ReconciliationRunStatus,
+    default: ReconciliationRunStatus.COMPLETED,
+  })
   status: ReconciliationRunStatus;
 
   @Column({ type: 'int', default: 0 })

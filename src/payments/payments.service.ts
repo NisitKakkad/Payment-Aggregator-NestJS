@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   NotFoundException,
@@ -7,21 +6,11 @@ import {
 
 import { InjectRepository } from '@nestjs/typeorm';
 
-import {
-  DataSource,
-  QueryFailedError,
-  Repository,
-} from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 
-import {
-  Payment,
-  PaymentStatus,
-} from './entities/payment.entity.js';
+import { Payment, PaymentStatus } from './entities/payment.entity.js';
 
-import {
-  Order,
-  OrderStatus,
-} from '../orders/entities/order.entity.js';
+import { Order, OrderStatus } from '../orders/entities/order.entity.js';
 
 import { CreatePaymentDto } from './dto/create-payment.dto.js';
 
@@ -95,9 +84,7 @@ export class PaymentsService {
       order.status === OrderStatus.PAID ||
       order.status === OrderStatus.CANCELLED
     ) {
-      throw new ConflictException(
-        'Payment cannot be initiated for this order',
-      );
+      throw new ConflictException('Payment cannot be initiated for this order');
     }
 
     // Ledger system accounts currently support INR only.
@@ -177,13 +164,11 @@ export class PaymentsService {
           throw new NotFoundException('Payment not found');
         }
 
-        paymentToUpdate.providerReference =
-          providerResult.providerReference;
+        paymentToUpdate.providerReference = providerResult.providerReference;
 
         paymentToUpdate.status = paymentStatus;
 
-        const updatedPayment =
-          await paymentRepo.save(paymentToUpdate);
+        const updatedPayment = await paymentRepo.save(paymentToUpdate);
 
         // Update order and post ledger entries only after success.
         if (updatedPayment.status === PaymentStatus.SUCCESS) {
@@ -312,27 +297,22 @@ export class PaymentsService {
     };
   }
 
-  async findAll(
-    merchantId: string,
-    page: number,
-    limit: number,
-  ) {
-    const [payments, total] =
-      await this.paymentRepository.findAndCount({
-        where: {
-          order: {
-            merchantId,
-          },
-        },
-        relations: {
-          order: true,
-        },
+  async findAll(merchantId: string, page: number, limit: number) {
+    const [payments, total] = await this.paymentRepository.findAndCount({
+      where: {
         order: {
-          createdAt: 'DESC',
+          merchantId,
         },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+      },
+      relations: {
+        order: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
     return {
       data: payments.map((payment) => ({

@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   BadRequestException,
@@ -7,11 +6,7 @@ import {
 
 import { InjectRepository } from '@nestjs/typeorm';
 
-import {
-  DataSource,
-  QueryFailedError,
-  Repository,
-} from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 
 import {
   ReconciliationRun,
@@ -51,14 +46,10 @@ export class ReconciliationService {
       dto.periodEnd &&
       new Date(dto.periodStart) > new Date(dto.periodEnd)
     ) {
-      throw new BadRequestException(
-        'periodStart cannot be after periodEnd',
-      );
+      throw new BadRequestException('periodStart cannot be after periodEnd');
     }
 
-    const references = dto.records.map(
-      (record) => record.externalReference,
-    );
+    const references = dto.records.map((record) => record.externalReference);
 
     if (new Set(references).size !== references.length) {
       throw new BadRequestException(
@@ -83,12 +74,8 @@ export class ReconciliationService {
             matchedRecords: 0,
             discrepancyCount: 0,
             totalExternalAmount: '0',
-            periodStart: dto.periodStart
-              ? new Date(dto.periodStart)
-              : null,
-            periodEnd: dto.periodEnd
-              ? new Date(dto.periodEnd)
-              : null,
+            periodStart: dto.periodStart ? new Date(dto.periodStart) : null,
+            periodEnd: dto.periodEnd ? new Date(dto.periodEnd) : null,
           }),
         );
 
@@ -111,9 +98,7 @@ export class ReconciliationService {
 
           let recordStatus = ExternalPayoutRecordStatus.UNMATCHED;
 
-          let discrepancyType:
-            | ReconciliationDiscrepancyType
-            | null = null;
+          let discrepancyType: ReconciliationDiscrepancyType | null = null;
 
           let description = '';
           let expectedAmount: string | null = null;
@@ -123,8 +108,7 @@ export class ReconciliationService {
             discrepancyType =
               ReconciliationDiscrepancyType.UNMATCHED_EXTERNAL_RECORD;
 
-            description =
-              `External payout ${input.externalReference} has no matching successful PayFlow settlement`;
+            description = `External payout ${input.externalReference} has no matching successful PayFlow settlement`;
           } else {
             settlementId = settlement.id;
             matchedSettlementIds.add(settlement.id);
@@ -133,16 +117,13 @@ export class ReconciliationService {
               settlement.amount !== input.amount ||
               settlement.currency !== input.currency
             ) {
-              recordStatus =
-                ExternalPayoutRecordStatus.AMOUNT_MISMATCH;
+              recordStatus = ExternalPayoutRecordStatus.AMOUNT_MISMATCH;
 
-              discrepancyType =
-                ReconciliationDiscrepancyType.AMOUNT_MISMATCH;
+              discrepancyType = ReconciliationDiscrepancyType.AMOUNT_MISMATCH;
 
               expectedAmount = settlement.amount;
 
-              description =
-                `External payout ${input.externalReference} does not match the PayFlow settlement amount or currency`;
+              description = `External payout ${input.externalReference} does not match the PayFlow settlement amount or currency`;
             } else {
               recordStatus = ExternalPayoutRecordStatus.MATCHED;
               matchedRecords += 1;
@@ -191,21 +172,15 @@ export class ReconciliationService {
           });
 
         if (dto.periodStart) {
-          missingQuery.andWhere(
-            'settlement.processedAt >= :periodStart',
-            {
-              periodStart: new Date(dto.periodStart),
-            },
-          );
+          missingQuery.andWhere('settlement.processedAt >= :periodStart', {
+            periodStart: new Date(dto.periodStart),
+          });
         }
 
         if (dto.periodEnd) {
-          missingQuery.andWhere(
-            'settlement.processedAt <= :periodEnd',
-            {
-              periodEnd: new Date(dto.periodEnd),
-            },
-          );
+          missingQuery.andWhere('settlement.processedAt <= :periodEnd', {
+            periodEnd: new Date(dto.periodEnd),
+          });
         }
 
         const successfulSettlements = await missingQuery.getMany();
@@ -223,10 +198,8 @@ export class ReconciliationService {
                 runId: run.id,
                 externalPayoutRecordId: null,
                 settlementId: settlement.id,
-                type:
-                  ReconciliationDiscrepancyType.MISSING_EXTERNAL_RECORD,
-                description:
-                  `Successful PayFlow settlement ${settlement.id} is missing from the uploaded external statement`,
+                type: ReconciliationDiscrepancyType.MISSING_EXTERNAL_RECORD,
+                description: `Successful PayFlow settlement ${settlement.id} is missing from the uploaded external statement`,
                 expectedAmount: settlement.amount,
                 actualAmount: null,
                 status: ReconciliationDiscrepancyStatus.OPEN,
@@ -283,18 +256,13 @@ export class ReconciliationService {
     }
   }
 
-  async findAll(
-    merchantId: string,
-    page = 1,
-    limit = 10,
-  ) {
-    const [data, total] =
-      await this.runRepository.findAndCount({
-        where: { merchantId },
-        order: { createdAt: 'DESC' },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+  async findAll(merchantId: string, page = 1, limit = 10) {
+    const [data, total] = await this.runRepository.findAndCount({
+      where: { merchantId },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
 
     return {
       data,
@@ -307,10 +275,7 @@ export class ReconciliationService {
     };
   }
 
-  async findOne(
-    merchantId: string,
-    runId: string,
-  ) {
+  async findOne(merchantId: string, runId: string) {
     const run = await this.runRepository.findOne({
       where: {
         id: runId,
@@ -323,26 +288,17 @@ export class ReconciliationService {
     });
 
     if (!run) {
-      throw new NotFoundException(
-        'Reconciliation run not found',
-      );
+      throw new NotFoundException('Reconciliation run not found');
     }
 
     return run;
   }
 
-  async resolveDiscrepancy(
-    merchantId: string,
-    discrepancyId: string,
-  ) {
+  async resolveDiscrepancy(merchantId: string, discrepancyId: string) {
     return this.dataSource.transaction(async (manager) => {
-      const discrepancyRepo = manager.getRepository(
-        ReconciliationDiscrepancy,
-      );
+      const discrepancyRepo = manager.getRepository(ReconciliationDiscrepancy);
 
-      const runRepo = manager.getRepository(
-        ReconciliationRun,
-      );
+      const runRepo = manager.getRepository(ReconciliationRun);
 
       // Find and lock the discrepancy.
       const discrepancy = await discrepancyRepo.findOne({
@@ -355,9 +311,7 @@ export class ReconciliationService {
       });
 
       if (!discrepancy) {
-        throw new NotFoundException(
-          'Reconciliation discrepancy not found',
-        );
+        throw new NotFoundException('Reconciliation discrepancy not found');
       }
 
       // Find and lock the parent run, verifying merchant ownership.
@@ -372,25 +326,21 @@ export class ReconciliationService {
       });
 
       if (!run) {
-        throw new NotFoundException(
-          'Reconciliation discrepancy not found',
-        );
+        throw new NotFoundException('Reconciliation discrepancy not found');
       }
 
       // Mark the discrepancy as resolved.
-      discrepancy.status =
-        ReconciliationDiscrepancyStatus.RESOLVED;
+      discrepancy.status = ReconciliationDiscrepancyStatus.RESOLVED;
 
       await discrepancyRepo.save(discrepancy);
 
       // Recalculate the remaining open discrepancies.
-      const openDiscrepancyCount =
-        await discrepancyRepo.count({
-          where: {
-            runId: run.id,
-            status: ReconciliationDiscrepancyStatus.OPEN,
-          },
-        });
+      const openDiscrepancyCount = await discrepancyRepo.count({
+        where: {
+          runId: run.id,
+          status: ReconciliationDiscrepancyStatus.OPEN,
+        },
+      });
 
       // Update the parent reconciliation run.
       run.discrepancyCount = openDiscrepancyCount;

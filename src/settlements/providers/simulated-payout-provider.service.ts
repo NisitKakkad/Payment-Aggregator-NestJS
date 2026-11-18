@@ -15,7 +15,9 @@ export interface SimulatedPayoutResult {
 
 @Injectable()
 export class SimulatedPayoutProviderService {
-  async processPayout(input: SimulatedPayoutInput): Promise<SimulatedPayoutResult> {
+  async processPayout(
+    input: SimulatedPayoutInput,
+  ): Promise<SimulatedPayoutResult> {
     // This is deliberately deterministic for a predictable development/demo workflow.
     // No bank, UPI, or real payment network is contacted.
     return {

@@ -1,6 +1,11 @@
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne,
-  JoinColumn, CreateDateColumn, Index,
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  Index,
 } from 'typeorm';
 import type { Settlement } from './settlements.entity.js';
 
@@ -13,7 +18,9 @@ export class SettlementItem {
   @Column({ type: 'uuid' })
   settlementId: string;
 
-  @ManyToOne('Settlement', (settlement: Settlement) => settlement.items, { onDelete: 'RESTRICT' })
+  @ManyToOne('Settlement', (settlement: Settlement) => settlement.items, {
+    onDelete: 'RESTRICT',
+  })
   @JoinColumn({ name: 'settlementId' })
   settlement: Settlement;
 

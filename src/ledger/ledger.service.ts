@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   BadRequestException,
@@ -79,8 +78,7 @@ export class LedgerService {
   ) {
     const existingAccount = await this.accountRepository.findOne({
       where: {
-        merchantId:
-          merchantId === null ? IsNull() : merchantId,
+        merchantId: merchantId === null ? IsNull() : merchantId,
         code,
       },
     });
@@ -105,9 +103,11 @@ export class LedgerService {
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
-        (error as QueryFailedError & {
-          driverError?: { code?: string };
-        }).driverError?.code === '23505'
+        (
+          error as QueryFailedError & {
+            driverError?: { code?: string };
+          }
+        ).driverError?.code === '23505'
       ) {
         throw new ConflictException(
           'Ledger account with this code already exists',
@@ -141,13 +141,12 @@ export class LedgerService {
     ];
 
     for (const account of systemAccounts) {
-      const existingAccount =
-        await this.accountRepository.findOne({
-          where: {
-            merchantId: IsNull(),
-            code: account.code,
-          },
-        });
+      const existingAccount = await this.accountRepository.findOne({
+        where: {
+          merchantId: IsNull(),
+          code: account.code,
+        },
+      });
 
       if (!existingAccount) {
         await this.accountRepository.save(
@@ -181,9 +180,7 @@ export class LedgerService {
     });
 
     if (!account) {
-      throw new NotFoundException(
-        `System ledger account ${code} not found`,
-      );
+      throw new NotFoundException(`System ledger account ${code} not found`);
     }
 
     return account;
@@ -193,13 +190,7 @@ export class LedgerService {
     input: PostJournalInput,
     transactionManager?: EntityManager,
   ): Promise<PostJournalResult> {
-    const {
-      merchantId,
-      referenceType,
-      referenceId,
-      currency,
-      entries,
-    } = input;
+    const { merchantId, referenceType, referenceId, currency, entries } = input;
 
     if (!entries || entries.length < 2) {
       throw new BadRequestException(
@@ -215,10 +206,7 @@ export class LedgerService {
       (entry) => entry.type === LedgerEntryType.CREDIT,
     );
 
-    if (
-      debitEntries.length === 0 ||
-      creditEntries.length === 0
-    ) {
+    if (debitEntries.length === 0 || creditEntries.length === 0) {
       throw new BadRequestException(
         'A journal must contain both debit and credit entries',
       );
@@ -241,33 +229,24 @@ export class LedgerService {
       } else if (entry.type === LedgerEntryType.CREDIT) {
         totalCredits += amount;
       } else {
-        throw new BadRequestException(
-          'Invalid ledger entry type',
-        );
+        throw new BadRequestException('Invalid ledger entry type');
       }
     }
 
     if (totalDebits !== totalCredits) {
-      throw new BadRequestException(
-        'Total debits must equal total credits',
-      );
+      throw new BadRequestException('Total debits must equal total credits');
     }
 
-    const accountIds = [
-      ...new Set(entries.map((entry) => entry.accountId)),
-    ];
+    const accountIds = [...new Set(entries.map((entry) => entry.accountId))];
 
     const execute = async (
       manager: EntityManager,
     ): Promise<PostJournalResult> => {
-      const accountRepository =
-        manager.getRepository(LedgerAccount);
+      const accountRepository = manager.getRepository(LedgerAccount);
 
-      const entryRepository =
-        manager.getRepository(LedgerEntry);
+      const entryRepository = manager.getRepository(LedgerEntry);
 
-      const journalRepository =
-        manager.getRepository(LedgerJournal);
+      const journalRepository = manager.getRepository(LedgerJournal);
 
       const accounts = await accountRepository.find({
         where: {
@@ -297,10 +276,7 @@ export class LedgerService {
           );
         }
 
-        if (
-          account.merchantId !== null &&
-          account.merchantId !== merchantId
-        ) {
+        if (account.merchantId !== null && account.merchantId !== merchantId) {
           throw new ConflictException(
             'Ledger account does not belong to this merchant',
           );
@@ -319,8 +295,7 @@ export class LedgerService {
         reversalOfId: null,
       });
 
-      const savedJournal =
-        await journalRepository.save(journal);
+      const savedJournal = await journalRepository.save(journal);
 
       const ledgerEntries = entries.map((entry) =>
         entryRepository.create({
@@ -331,8 +306,7 @@ export class LedgerService {
           currency,
           referenceType,
           referenceId,
-          description:
-            entry.description ?? input.description ?? null,
+          description: entry.description ?? input.description ?? null,
         }),
       );
 
@@ -353,9 +327,11 @@ export class LedgerService {
     } catch (error) {
       if (
         error instanceof QueryFailedError &&
-        (error as QueryFailedError & {
-          driverError?: { code?: string };
-        }).driverError?.code === '23505'
+        (
+          error as QueryFailedError & {
+            driverError?: { code?: string };
+          }
+        ).driverError?.code === '23505'
       ) {
         throw new ConflictException(
           'A ledger journal already exists for this reference',
@@ -366,10 +342,7 @@ export class LedgerService {
     }
   }
 
-  async getAccountBalance(
-    accountId: string,
-    merchantId: string,
-  ) {
+  async getAccountBalance(accountId: string, merchantId: string) {
     const account = await this.accountRepository.findOne({
       where: {
         id: accountId,
@@ -377,15 +350,10 @@ export class LedgerService {
     });
 
     if (!account) {
-      throw new NotFoundException(
-        'Ledger account not found',
-      );
+      throw new NotFoundException('Ledger account not found');
     }
 
-    if (
-      account.merchantId !== null &&
-      account.merchantId !== merchantId
-    ) {
+    if (account.merchantId !== null && account.merchantId !== merchantId) {
       throw new ConflictException(
         'Ledger account does not belong to this merchant',
       );
@@ -446,28 +414,18 @@ export class LedgerService {
     });
 
     if (!account) {
-      throw new NotFoundException(
-        'Ledger account not found',
-      );
+      throw new NotFoundException('Ledger account not found');
     }
 
-    if (
-      account.merchantId !== null &&
-      account.merchantId !== merchantId
-    ) {
+    if (account.merchantId !== null && account.merchantId !== merchantId) {
       throw new ConflictException(
         'Ledger account does not belong to this merchant',
       );
     }
 
-    const parseDate = (
-      value: string,
-      field: string,
-    ): Date => {
+    const parseDate = (value: string, field: string): Date => {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        throw new BadRequestException(
-          `${field} must use YYYY-MM-DD format`,
-        );
+        throw new BadRequestException(`${field} must use YYYY-MM-DD format`);
       }
 
       const parsed = new Date(`${value}T00:00:00.000Z`);
@@ -476,21 +434,15 @@ export class LedgerService {
         Number.isNaN(parsed.getTime()) ||
         parsed.toISOString().slice(0, 10) !== value
       ) {
-        throw new BadRequestException(
-          `${field} is not a valid date`,
-        );
+        throw new BadRequestException(`${field} is not a valid date`);
       }
 
       return parsed;
     };
 
-    const fromDate = from
-      ? parseDate(from, 'from')
-      : undefined;
+    const fromDate = from ? parseDate(from, 'from') : undefined;
 
-    const toDate = to
-      ? parseDate(to, 'to')
-      : undefined;
+    const toDate = to ? parseDate(to, 'to') : undefined;
 
     if (fromDate && toDate && fromDate > toDate) {
       throw new BadRequestException(
@@ -499,9 +451,7 @@ export class LedgerService {
     }
 
     const toExclusive = toDate
-      ? new Date(
-          toDate.getTime() + 24 * 60 * 60 * 1000,
-        )
+      ? new Date(toDate.getTime() + 24 * 60 * 60 * 1000)
       : undefined;
 
     const query = this.entryRepository
@@ -534,9 +484,7 @@ export class LedgerService {
       const amount = BigInt(entry.amount);
 
       const signedAmount =
-        entry.type === LedgerEntryType.DEBIT
-          ? amount
-          : -amount;
+        entry.type === LedgerEntryType.DEBIT ? amount : -amount;
 
       if (fromDate && entry.createdAt < fromDate) {
         openingBalance += signedAmount;
@@ -555,9 +503,7 @@ export class LedgerService {
         currency: entry.currency,
         description: entry.description,
         createdAt: entry.createdAt,
-        runningBalance: (
-          openingBalance + periodBalance
-        ).toString(),
+        runningBalance: (openingBalance + periodBalance).toString(),
       });
     }
 
@@ -575,112 +521,95 @@ export class LedgerService {
       },
       openingBalance: openingBalance.toString(),
       entries: statementEntries,
-      closingBalance: (
-        openingBalance + periodBalance
-      ).toString(),
+      closingBalance: (openingBalance + periodBalance).toString(),
     };
   }
 
-  async findAllAccounts(
-  merchantId: string,
-  page = 1,
-  limit = 10,
-) {
-  const [accounts, total] = await this.accountRepository
-    .createQueryBuilder('account')
-    .where(
-      '(account.merchantId = :merchantId OR account.merchantId IS NULL)',
-      { merchantId },
-    )
-    .orderBy('account.createdAt', 'DESC')
-    .skip((page - 1) * limit)
-    .take(limit)
-    .getManyAndCount();
+  async findAllAccounts(merchantId: string, page = 1, limit = 10) {
+    const [accounts, total] = await this.accountRepository
+      .createQueryBuilder('account')
+      .where(
+        '(account.merchantId = :merchantId OR account.merchantId IS NULL)',
+        { merchantId },
+      )
+      .orderBy('account.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
-  return {
-    data: accounts,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
-}
-
-  
-async findAllJournals(
-  merchantId: string,
-  page = 1,
-  limit = 10,
-  filters?: LedgerJournalFilterDto,
-) {
-  const query = this.journalRepository
-    .createQueryBuilder('journal')
-    .leftJoinAndSelect('journal.entries', 'entry')
-    .leftJoinAndSelect('entry.account', 'account')
-    .where('journal.merchantId = :merchantId', {
-      merchantId,
-    });
-
-  if (filters?.referenceType) {
-    query.andWhere(
-      'journal.referenceType = :referenceType',
-      { referenceType: filters.referenceType },
-    );
+    return {
+      data: accounts,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  if (filters?.status) {
-    query.andWhere('journal.status = :status', {
-      status: filters.status,
-    });
-  }
-
-  if (filters?.from) {
-    query.andWhere('journal.createdAt >= :from', {
-      from: new Date(filters.from),
-    });
-  }
-
-  if (filters?.to) {
-    const toExclusive = new Date(filters.to);
-    toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
-
-    query.andWhere(
-      'journal.createdAt < :toExclusive',
-      { toExclusive },
-    );
-  }
-
-  const [journals, total] = await query
-    .orderBy('journal.createdAt', 'DESC')
-    .addOrderBy('entry.createdAt', 'ASC')
-    .skip((page - 1) * limit)
-    .take(limit)
-    .getManyAndCount();
-
-  return {
-    data: journals,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
-}
-
-
-  async reverseJournal(
-    journalId: string,
+  async findAllJournals(
     merchantId: string,
+    page = 1,
+    limit = 10,
+    filters?: LedgerJournalFilterDto,
   ) {
-    return this.dataSource.transaction(async (manager) => {
-      const journalRepository =
-        manager.getRepository(LedgerJournal);
+    const query = this.journalRepository
+      .createQueryBuilder('journal')
+      .leftJoinAndSelect('journal.entries', 'entry')
+      .leftJoinAndSelect('entry.account', 'account')
+      .where('journal.merchantId = :merchantId', {
+        merchantId,
+      });
 
-      const entryRepository =
-        manager.getRepository(LedgerEntry);
+    if (filters?.referenceType) {
+      query.andWhere('journal.referenceType = :referenceType', {
+        referenceType: filters.referenceType,
+      });
+    }
+
+    if (filters?.status) {
+      query.andWhere('journal.status = :status', {
+        status: filters.status,
+      });
+    }
+
+    if (filters?.from) {
+      query.andWhere('journal.createdAt >= :from', {
+        from: new Date(filters.from),
+      });
+    }
+
+    if (filters?.to) {
+      const toExclusive = new Date(filters.to);
+      toExclusive.setUTCDate(toExclusive.getUTCDate() + 1);
+
+      query.andWhere('journal.createdAt < :toExclusive', { toExclusive });
+    }
+
+    const [journals, total] = await query
+      .orderBy('journal.createdAt', 'DESC')
+      .addOrderBy('entry.createdAt', 'ASC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: journals,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async reverseJournal(journalId: string, merchantId: string) {
+    return this.dataSource.transaction(async (manager) => {
+      const journalRepository = manager.getRepository(LedgerJournal);
+
+      const entryRepository = manager.getRepository(LedgerEntry);
 
       const originalJournal = await journalRepository
         .createQueryBuilder('journal')
@@ -694,30 +623,21 @@ async findAllJournals(
         .getOne();
 
       if (!originalJournal) {
-        throw new NotFoundException(
-          'Ledger journal not found',
-        );
+        throw new NotFoundException('Ledger journal not found');
       }
 
-      if (
-        originalJournal.status !== LedgerJournalStatus.POSTED
-      ) {
-        throw new ConflictException(
-          'Only posted journals can be reversed',
-        );
+      if (originalJournal.status !== LedgerJournalStatus.POSTED) {
+        throw new ConflictException('Only posted journals can be reversed');
       }
 
-      const existingReversal =
-        await journalRepository.findOne({
-          where: {
-            reversalOfId: originalJournal.id,
-          },
-        });
+      const existingReversal = await journalRepository.findOne({
+        where: {
+          reversalOfId: originalJournal.id,
+        },
+      });
 
       if (existingReversal) {
-        throw new ConflictException(
-          'This journal has already been reversed',
-        );
+        throw new ConflictException('This journal has already been reversed');
       }
 
       const originalEntries = await entryRepository.find({
@@ -727,9 +647,7 @@ async findAllJournals(
       });
 
       if (originalEntries.length < 2) {
-        throw new ConflictException(
-          'Original journal has invalid entries',
-        );
+        throw new ConflictException('Original journal has invalid entries');
       }
 
       const reversalJournal = journalRepository.create({
@@ -744,8 +662,7 @@ async findAllJournals(
         reversalOfId: originalJournal.id,
       });
 
-      const savedReversal =
-        await journalRepository.save(reversalJournal);
+      const savedReversal = await journalRepository.save(reversalJournal);
 
       const reversalEntries = originalEntries.map((entry) =>
         entryRepository.create({
@@ -776,80 +693,68 @@ async findAllJournals(
       };
     });
   }
-  async getJournalById(
-  journalId: string,
-  merchantId: string,
-) {
-  const journal = await this.journalRepository.findOne({
-    where: {
-      id: journalId,
-      merchantId,
-    },
-    relations: {
-      entries: {
-        account: true,
+  async getJournalById(journalId: string, merchantId: string) {
+    const journal = await this.journalRepository.findOne({
+      where: {
+        id: journalId,
+        merchantId,
       },
-    },
-  });
+      relations: {
+        entries: {
+          account: true,
+        },
+      },
+    });
 
-  if (!journal) {
-    throw new NotFoundException('Ledger journal not found');
+    if (!journal) {
+      throw new NotFoundException('Ledger journal not found');
+    }
+
+    return journal;
   }
 
-  return journal;
-}
+  async updateAccountStatus(
+    accountId: string,
+    merchantId: string,
+    status: LedgerAccountStatus,
+  ) {
+    const account = await this.accountRepository.findOne({
+      where: {
+        id: accountId,
+        merchantId,
+      },
+    });
 
-async updateAccountStatus(
-  accountId: string,
-  merchantId: string,
-  status: LedgerAccountStatus,
-) {
-  const account = await this.accountRepository.findOne({
-    where: {
-      id: accountId,
-      merchantId,
-    },
-  });
+    if (!account) {
+      throw new NotFoundException('Merchant ledger account not found');
+    }
 
-  if (!account) {
-    throw new NotFoundException('Merchant ledger account not found');
+    if (account.status === status) {
+      throw new ConflictException(`Ledger account is already ${status}`);
+    }
+
+    account.status = status;
+
+    return this.accountRepository.save(account);
   }
+  async deactivateAccount(accountId: string, merchantId: string) {
+    const account = await this.accountRepository.findOne({
+      where: {
+        id: accountId,
+        merchantId,
+      },
+    });
 
-  if (account.status === status) {
-    throw new ConflictException(
-      `Ledger account is already ${status}`,
-    );
+    if (!account) {
+      throw new NotFoundException('Merchant ledger account not found');
+    }
+
+    if (account.status === LedgerAccountStatus.INACTIVE) {
+      throw new ConflictException('Ledger account is already inactive');
+    }
+
+    account.status = LedgerAccountStatus.INACTIVE;
+
+    return this.accountRepository.save(account);
   }
-
-  account.status = status;
-
-  return this.accountRepository.save(account);
-}
-async deactivateAccount(
-  accountId: string,
-  merchantId: string,
-) {
-  const account = await this.accountRepository.findOne({
-    where: {
-      id: accountId,
-      merchantId,
-    },
-  });
-
-  if (!account) {
-    throw new NotFoundException(
-      'Merchant ledger account not found',
-    );
-  }
-
-  if (account.status === LedgerAccountStatus.INACTIVE) {
-    throw new ConflictException(
-      'Ledger account is already inactive',
-    );
-  }
-
-  account.status = LedgerAccountStatus.INACTIVE;
-
-  return this.accountRepository.save(account);
-}
 }

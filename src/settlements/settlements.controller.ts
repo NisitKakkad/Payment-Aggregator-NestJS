@@ -1,6 +1,14 @@
 import {
-  Controller, Post, Get, Body, Param, Query, Headers,
-  UseGuards, ParseUUIDPipe, BadRequestException,
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  Headers,
+  UseGuards,
+  ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { SettlementsService } from './settlements.service.js';
 import { CreateSettlementDto } from './dto/create-settlement.dto.js';
@@ -24,7 +32,8 @@ export class SettlementsController {
     @Body() dto: CreateSettlementDto,
     @Headers('idempotency-key') idempotencyKey: string,
   ) {
-    if (!idempotencyKey) throw new BadRequestException('Idempotency-Key header is required');
+    if (!idempotencyKey)
+      throw new BadRequestException('Idempotency-Key header is required');
     return this.settlementsService.create(merchant.sub, dto, idempotencyKey);
   }
 
@@ -33,7 +42,11 @@ export class SettlementsController {
     @CurrentMerchant() merchant: { sub: string },
     @Query() pagination: SettlementPaginationDto,
   ) {
-    return this.settlementsService.findAll(merchant.sub, pagination.page, pagination.limit);
+    return this.settlementsService.findAll(
+      merchant.sub,
+      pagination.page,
+      pagination.limit,
+    );
   }
 
   @Get(':id')

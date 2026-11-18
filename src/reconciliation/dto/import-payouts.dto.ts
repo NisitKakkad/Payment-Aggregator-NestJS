@@ -1,6 +1,13 @@
 import {
-  ArrayMinSize, IsArray, IsDateString, IsNotEmpty,
-  IsString, Matches, MaxLength, ValidateNested, IsOptional,
+  ArrayMinSize,
+  IsArray,
+  IsDateString,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateNested,
+  IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -11,11 +18,15 @@ export class ExternalPayoutRecordDto {
   externalReference: string;
 
   @IsString()
-  @Matches(/^[1-9]\d*$/, { message: 'amount must be a positive integer string in paise' })
+  @Matches(/^[1-9]\d*$/, {
+    message: 'amount must be a positive integer string in paise',
+  })
   amount: string;
 
   @IsString()
-  @Matches(/^[A-Z]{3}$/, { message: 'currency must be a 3-letter uppercase code' })
+  @Matches(/^[A-Z]{3}$/, {
+    message: 'currency must be a 3-letter uppercase code',
+  })
   currency: string;
 
   @IsDateString()

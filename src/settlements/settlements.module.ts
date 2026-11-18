@@ -14,7 +14,9 @@ import { OutboxModule } from '../outbox/outbox.module.js';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Settlement, SettlementItem, Merchant,
+      Settlement,
+      SettlementItem,
+      Merchant,
       LedgerEntry,
     ]),
     AuthModule,

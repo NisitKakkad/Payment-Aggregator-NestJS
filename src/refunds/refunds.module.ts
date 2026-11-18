@@ -12,7 +12,12 @@ import { OutboxModule } from '../outbox/outbox.module.js';
 import { LedgerModule } from '../ledger/ledger.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Refund]), AuthModule, OutboxModule, LedgerModule],
+  imports: [
+    TypeOrmModule.forFeature([Refund]),
+    AuthModule,
+    OutboxModule,
+    LedgerModule,
+  ],
   controllers: [RefundsController],
   providers: [RefundsService, SimulatedRefundProviderService],
   exports: [RefundsService],
